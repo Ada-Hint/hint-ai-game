@@ -1,0 +1,350 @@
+{
+  "format": "hint-survey-draft-v1",
+  "questions": [
+    {
+      "id": "area",
+      "title": "Which areas describe your work?",
+      "kind": "choice",
+      "required": false,
+      "multiple": true,
+      "help": "Select all that apply.",
+      "options": [
+        {
+          "id": "area_0",
+          "label": "Creative",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "area_1",
+          "label": "Brand, Social & Partnerships",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "area_2",
+          "label": "DTC & Lifecycle",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "area_3",
+          "label": "Analytics & Growth",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "area_4",
+          "label": "Other",
+          "exclusive": false,
+          "other": true
+        }
+      ],
+      "minimum": 1,
+      "maximum": 5,
+      "low_label": "Where do I start?",
+      "high_label": "Comfortable experimenting",
+      "display": "checkboxes"
+    },
+    {
+      "id": "ai_comfort",
+      "title": "From 1–10, how comfortable are you with using AI?",
+      "kind": "rating",
+      "required": true,
+      "multiple": false,
+      "help": "",
+      "options": [],
+      "minimum": 1,
+      "maximum": 10,
+      "low_label": "Not comfortable yet",
+      "high_label": "Very comfortable"
+    },
+    {
+      "id": "tools",
+      "title": "What AI tools do you use?",
+      "kind": "choice",
+      "required": true,
+      "multiple": true,
+      "help": "Select all that apply.",
+      "options": [
+        {
+          "id": "tools_0",
+          "label": "ChatGPT",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "tools_1",
+          "label": "Microsoft Copilot",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "tools_2",
+          "label": "Claude",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "tools_3",
+          "label": "Gemini",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "tools_4",
+          "label": "Grok",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "tools_5",
+          "label": "Meta AI",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "tools_6",
+          "label": "Other",
+          "exclusive": false,
+          "other": true
+        },
+        {
+          "id": "tools_7",
+          "label": "None",
+          "exclusive": true,
+          "other": false
+        },
+        {
+          "id": "tools_8",
+          "label": "Not sure",
+          "exclusive": true,
+          "other": false
+        }
+      ],
+      "minimum": 1,
+      "maximum": 5,
+      "low_label": "Where do I start?",
+      "high_label": "Comfortable experimenting",
+      "display": "checkboxes"
+    },
+    {
+      "id": "ai_usage",
+      "title": "How are you using AI today?",
+      "kind": "choice",
+      "required": true,
+      "multiple": true,
+      "help": "Choose both where you use AI and what you use it for. Select all that apply.",
+      "options": [
+        {
+          "id": "ai_usage_0",
+          "label": "In a browser",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "ai_usage_1",
+          "label": "In chat",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "ai_usage_2",
+          "label": "For coding",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "ai_usage_3",
+          "label": "In work apps (e.g. Word, Excel, or Teams)",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "ai_usage_4",
+          "label": "To generate text",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "ai_usage_5",
+          "label": "To analyze data",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "ai_usage_6",
+          "label": "Other",
+          "exclusive": false,
+          "other": true
+        },
+        {
+          "id": "ai_usage_7",
+          "label": "Not using AI yet",
+          "exclusive": true,
+          "other": false
+        }
+      ],
+      "minimum": 1,
+      "maximum": 5,
+      "low_label": "Where do I start?",
+      "high_label": "Comfortable experimenting",
+      "display": "checkboxes"
+    },
+    {
+      "id": "first_task",
+      "title": "What’s the first thing you’d ask AI to help you with at work?",
+      "kind": "text",
+      "required": false,
+      "multiple": false,
+      "help": "One answer is plenty. You can skip this if nothing comes to mind. Please leave out confidential information.",
+      "options": [],
+      "minimum": 1,
+      "maximum": 5,
+      "low_label": "Where do I start?",
+      "high_label": "Comfortable experimenting"
+    },
+    {
+      "id": "never_again",
+      "title": "What task would you be happiest to never do again?",
+      "kind": "text",
+      "required": false,
+      "multiple": false,
+      "help": "One answer is plenty. You can skip this if nothing comes to mind. Please leave out confidential information.",
+      "options": [],
+      "minimum": 1,
+      "maximum": 5,
+      "low_label": "Where do I start?",
+      "high_label": "Comfortable experimenting"
+    },
+    {
+      "id": "reporting",
+      "title": "Name the #1 bit of data or reporting you’re constantly asked for.",
+      "kind": "text",
+      "required": false,
+      "multiple": false,
+      "help": "One answer is plenty. You can skip this if nothing comes to mind. Please leave out confidential information.",
+      "options": [],
+      "minimum": 1,
+      "maximum": 5,
+      "low_label": "Where do I start?",
+      "high_label": "Comfortable experimenting"
+    },
+    {
+      "id": "ai_association",
+      "title": "When someone says AI, what’s the first thing that comes to mind?",
+      "kind": "text",
+      "required": false,
+      "multiple": false,
+      "help": "One answer is plenty. You can skip this if nothing comes to mind. Please leave out confidential information.",
+      "options": [],
+      "minimum": 1,
+      "maximum": 5,
+      "low_label": "Where do I start?",
+      "high_label": "Comfortable experimenting"
+    },
+    {
+      "id": "ai_bad",
+      "title": "Name the one thing AI is terrible at.",
+      "kind": "text",
+      "required": false,
+      "multiple": false,
+      "help": "One answer is plenty. You can skip this if nothing comes to mind. Please leave out confidential information.",
+      "options": [],
+      "minimum": 1,
+      "maximum": 5,
+      "low_label": "Where do I start?",
+      "high_label": "Comfortable experimenting"
+    },
+    {
+      "id": "ai_good",
+      "title": "Name the one thing AI is surprisingly good at.",
+      "kind": "text",
+      "required": false,
+      "multiple": false,
+      "help": "One answer is plenty. You can skip this if nothing comes to mind. Please leave out confidential information.",
+      "options": [],
+      "minimum": 1,
+      "maximum": 5,
+      "low_label": "Where do I start?",
+      "high_label": "Comfortable experimenting"
+    },
+    {
+      "id": "work_document",
+      "title": "Name a work document nobody enjoys creating.",
+      "kind": "text",
+      "required": false,
+      "multiple": false,
+      "help": "One answer is plenty. You can skip this if nothing comes to mind. Please leave out confidential information.",
+      "options": [],
+      "minimum": 1,
+      "maximum": 5,
+      "low_label": "Where do I start?",
+      "high_label": "Comfortable experimenting"
+    },
+    {
+      "id": "improve_at",
+      "title": "If AI could instantly make you better at one thing, what would you choose?",
+      "kind": "text",
+      "required": false,
+      "multiple": false,
+      "help": "One answer is plenty. You can skip this if nothing comes to mind. Please leave out confidential information.",
+      "options": [],
+      "minimum": 1,
+      "maximum": 5,
+      "low_label": "Where do I start?",
+      "high_label": "Comfortable experimenting"
+    },
+    {
+      "id": "learning_topics",
+      "title": "What topics do you most want to learn about?",
+      "kind": "choice",
+      "required": true,
+      "multiple": true,
+      "help": "Select all that apply.",
+      "options": [
+        {
+          "id": "learning_topics_0",
+          "label": "Practical uses for Copilot",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "learning_topics_1",
+          "label": "Prompting",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "learning_topics_2",
+          "label": "Data analysis",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "learning_topics_3",
+          "label": "AI terminology and the basics",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "learning_topics_4",
+          "label": "How organizations are using AI",
+          "exclusive": false,
+          "other": false
+        },
+        {
+          "id": "learning_topics_5",
+          "label": "Other",
+          "exclusive": false,
+          "other": true
+        }
+      ],
+      "minimum": 1,
+      "maximum": 5,
+      "low_label": "Where do I start?",
+      "high_label": "Comfortable experimenting",
+      "display": "checkboxes"
+    }
+  ]
+}

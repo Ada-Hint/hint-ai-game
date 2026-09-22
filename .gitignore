@@ -1,0 +1,16 @@
+.venv/
+.local/
+.streamlit/secrets.toml
+__pycache__/
+*.py[cod]
+.DS_Store
+.pytest_cache/
+test-results/
+.env
+.env.*
+*.db
+*.db-shm
+*.db-wal
+Hint_BrandBook_Final_103125.pdf
+The-Final-Feud-Commerce-Feud.html
+HINT-WORDMARK-RGB (1).png
