@@ -2,6 +2,7 @@
 from collections import Counter
 from copy import deepcopy
 import hashlib
+import json
 import math
 import secrets
 import time
@@ -500,11 +501,15 @@ def start_game(state, now=None):
     """Prepare and start together inside one repository transaction."""
     if state['game']['index'] != -1 or state['game']['phase'] != 'lobby':
         raise RuleError('This game has already started. Use the current game controls to continue.')
-    if not state['frozen']:
-        freeze(state)
-    if not state['game']['deck']:
+    # A previously prepared lobby may contain an old snapshot. Every new run
+    # must build from the saved cards, not resume that prepared deck.
+    candidate = deepcopy(state)
+    candidate['frozen'] = False
+    freeze(candidate)
+    if not candidate['game']['deck']:
         raise RuleError('Add a game card in Game content before starting.')
-    game_action(state, 'start', now)
+    game_action(candidate, 'start', now)
+    state.update(candidate)
 
 
 def start_readiness(state):
@@ -513,8 +518,8 @@ def start_readiness(state):
     try:
         start_game(candidate)
     except RuleError as exc:
-        return {'error': str(exc), 'polls': []}
-    return {'error': None, 'polls': [c['title'] for c in candidate['game']['deck'] if c.get('low_response_poll')]}
+        return {'error': str(exc), 'polls': [], 'cards': []}
+    return {'error': None, 'polls': [c['title'] for c in candidate['game']['deck'] if c.get('low_response_poll')], 'cards': candidate['game']['deck']}
 
 
 def phase(state, now=None):
@@ -656,7 +661,34 @@ def reset_game(state):
     state.update(game=fresh["game"], players={}, votes={}, frozen=False, frozen_version=None, frozen_excerpts=[])
 
 
-def seed_rehearsal():
+def rehearsal_content(source):
+    """Only authoring data crosses into rehearsal; never real responses/players."""
+    version = active_version(source)
+    questions = version['questions'] if version else source['survey']['draft']
+    categories = {q['id']: deepcopy(source['survey']['categories'].get(mapping_key(version['id'], q['id']), []))
+                  for q in questions if version and q['kind'] == 'text'}
+    return {'cards': deepcopy(source['cards']), 'questions': deepcopy(questions), 'categories': categories}
+
+
+def rehearsal_content_signature(source):
+    return digest(json.dumps(rehearsal_content(source), sort_keys=True))
+
+
+def sync_rehearsal(state, source):
+    """Refresh an idle rehearsal from saved live content; leave active runs alone."""
+    if state['frozen'] or state['game']['index'] != -1 or state['game']['phase'] != 'lobby':
+        return False
+    signature = rehearsal_content_signature(source)
+    if state.get('rehearsal_source') == signature:
+        return False
+    fresh = seed_rehearsal(source)
+    state.update(cards=fresh['cards'], survey=fresh['survey'], rehearsal_source=signature)
+    return True
+
+
+def seed_rehearsal(source=None):
+    if source is not None:
+        return seed_content_rehearsal(source)
     state = initial_state()
     vid = publish(state)
     for i in range(8):
@@ -666,4 +698,51 @@ def seed_rehearsal():
         answers["tasks"]["choices"] = ["tasks_0", f"tasks_{1 + i % 4}"]
         answers["hesitations"]["choices"] = ["hesitations_1", f"hesitations_{2 + i % 3}"]
         submit_survey(state, vid, answers, f"synthetic-rehearsal-{i}")
+    return state
+
+
+def seed_content_rehearsal(source):
+    """Generate safe sample answers for the current published survey schema."""
+    content = rehearsal_content(source)
+    state = initial_state()
+    save_cards(state, content['cards'])
+    save_draft(state, content['questions'])
+    vid = publish(state)
+    text_categories = {}
+    for q in content['questions']:
+        if q['kind'] == 'text':
+            categories = content['categories'].get(q['id']) or [
+                {'id': new_id(), 'label': 'Sample category 1'},
+                {'id': new_id(), 'label': 'Sample category 2'},
+            ]
+            # One reviewed live category still needs a second sample category
+            # to exercise the game without inventing another real answer.
+            if len(categories) == 1:
+                categories.append({'id': new_id(), 'label': 'Additional sample category'})
+            text_categories[q['id']] = categories
+            state['survey']['categories'][mapping_key(vid, q['id'])] = categories
+    for i in range(8):
+        answers = {}
+        for q in content['questions']:
+            answer = {'choices': [], 'texts': [], 'rating': None}
+            if q['kind'] == 'choice':
+                opts = [o for o in q['options'] if not o.get('other')] or q['options']
+                option = opts[0 if i < 4 else (i - 3) % len(opts)]
+                answer['choices'] = [option['id']]
+                if option.get('other'):
+                    answer['texts'] = [{'id': 'sample', 'value': 'Synthetic rehearsal answer'}]
+            elif q['kind'] == 'rating':
+                answer['rating'] = q['minimum'] + i % (q['maximum'] - q['minimum'] + 1)
+            elif q['kind'] == 'ranking':
+                ids = [o['id'] for o in q['options']]
+                shift = 0 if i < 5 else i % len(ids)
+                answer['ranking'] = ids[shift:] + ids[:shift]
+            else:
+                answer['texts'] = [{'id': 'sample', 'value': f'Synthetic rehearsal answer {i + 1}'}]
+            answers[q['id']] = answer
+        rid = submit_survey(state, vid, answers, f'synthetic-content-rehearsal-{i}')
+        for qid, categories in text_categories.items():
+            category = categories[0 if i < 4 else (i - 3) % len(categories)]
+            state['survey']['mappings'][text_key(rid, qid, 'sample')] = category['id']
+    state['rehearsal_source'] = rehearsal_content_signature(source)
     return state

@@ -17,7 +17,7 @@ Open **http://localhost:8501/?view=home&event=HINTAI**.
 - Host workspace: **http://localhost:8501/?view=manage**.
 - The first launch generates a host password in **`.local/host-password.txt`**. Open that file, copy its contents, and sign in. This file is ignored by Git.
 - In **Edit survey**, customize questions and click **Publish survey**. The real event starts with no responses and an unpublished draft.
-- In **Setup & links**, open the separate **rehearsal workspace**. It contains eight synthetic survey responses and has its own player/board links.
+- In **Setup & links**, open the separate **rehearsal workspace**. It uses your latest saved live game cards, eight synthetic responses to the current survey, and separate player/board links. Edit game cards in the real event; an idle rehearsal refreshes automatically. A rehearsal already in progress keeps its starting deck until reset.
 - Local SQLite data is saved in `.local/hint.db`, so closing and reopening the app does not erase responses or scores.
 
 Localhost links work only on your own computer. Use the hosting steps below for a remote workforce. Do not use Streamlit Cloud’s local filesystem for event data; it may be replaced when the app restarts or redeploys.
@@ -79,7 +79,7 @@ Use **Edit survey → Download question draft** locally, then **Edit survey → 
 
 Open **Manage → Run game**. The Game control room puts the current status and primary action at the top:
 
-1. **Start game** closes the survey, saves its results for this session, and shows the first card. The timer stays off until you open voting. If setup is incomplete, the page explains what to fix and links to the survey and game editors.
+1. **Start game** rebuilds the deck from the latest saved **Game content**, closes the survey, saves its results for this session, and shows the first card. Before starting, check **First card** and **Cards that will play · saved order**. The timer stays off until you open voting. If setup is incomplete, the page explains what to fix and links to the survey and game editors.
 2. **Open voting · 30 seconds** lets players answer. Watch the live countdown and answer count; **＋ 15 seconds** adds time.
 3. **Close voting** locks answers, or let the timer expire. **Reopen · 15 seconds** gives players another chance before the reveal.
 4. **Reveal results** shows the answers and awards points. For Guess the room, use **Reveal next answer** or **Reveal all answers** to uncover the rest of the board.

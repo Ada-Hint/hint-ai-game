@@ -57,8 +57,14 @@ def link(target, absolute=False, mode=None):
 
 def snapshot():
     try:
-        return repo.snapshot()
-    except StorageError as exc:
+        state = repo.snapshot()
+        if rehearsal and is_host() and not state['frozen'] and state['game']['index'] == -1 and state['game']['phase'] == 'lobby':
+            source = get_repo(settings, False).snapshot()
+            if state.get('rehearsal_source') != engine.rehearsal_content_signature(source):
+                repo.mutate(lambda s: engine.sync_rehearsal(s, source))
+                state = repo.snapshot()
+        return state
+    except (StorageError, engine.RuleError) as exc:
         st.error(str(exc))
         st.caption("No new votes can be accepted while the connection is unavailable. The host can continue in Teams chat.")
         if st.button("Try connection again"):
@@ -88,6 +94,19 @@ def host_commit(action, message=None, *, rerun=True):
         st.error("Sign in as the host first.")
         st.stop()
     return commit(action, message, rerun=rerun)
+
+
+def start_saved_game(state):
+    if rehearsal:
+        # Read the saved source at click time, including edits from another tab.
+        candidate = deepcopy(state)
+        if candidate['game']['index'] == -1 and candidate['game']['phase'] == 'lobby':
+            candidate['frozen'] = False
+            engine.sync_rehearsal(candidate, get_repo(settings, False).snapshot())
+        engine.start_game(candidate)
+        state.update(candidate)
+    else:
+        engine.start_game(state)
 
 
 def require_event():
@@ -243,7 +262,7 @@ def player_live(token):
 def present_live():
     state = snapshot()
     if engine.current_card(state) is None:
-        ui.hero("WELCOME TO A HINT OF AI", "A little friendly\ncompetition.", "Six questions. A few practical shortcuts. Everyone’s starting point is welcome.", ["18 MINUTES", "NO TEAMS", "NO SPEED BONUS"])
+        ui.hero("WELCOME TO A HINT OF AI", "A little friendly\ncompetition.", f"{len(state['cards'])} game cards. A few practical shortcuts. Everyone’s starting point is welcome.", ["18 MINUTES", "NO TEAMS", "NO SPEED BONUS"])
         a, b = st.columns([3, 1])
         with a:
             st.subheader("Grab a nickname. Join the room.")
@@ -279,13 +298,13 @@ def setup_links(state):
         ui.qr_code(link("play", True), 170)
     st.divider()
     st.subheader("Rehearse without touching real responses.")
-    st.write("Rehearsal is a separate event with eight clearly synthetic survey responses. Open its host, board, and player links in separate tabs.")
+    st.write("Rehearsal uses your saved live game cards in the same order, with eight synthetic survey responses and separate players and scores. Saved content refreshes before a new rehearsal starts. Open its host, board, and player links in separate tabs.")
     if rehearsal:
         st.link_button("Return to the real event", link("manage", mode=False))
         if st.checkbox("Replace rehearsal data with fresh sample responses") and st.button("Reset rehearsal"):
             def reset(s):
                 s.clear()
-                s.update(engine.seed_rehearsal())
+                s.update(engine.seed_rehearsal(get_repo(settings, False).snapshot()))
             host_commit(reset, "Rehearsal reset. Real event data was not changed.")
     else:
         st.link_button("Open rehearsal workspace", link("manage", mode=True), type="primary")
@@ -429,6 +448,20 @@ def edit_card_fields(state, c):
 
 def content_editor(state):
     st.subheader("Your questions. Your teaching moments.")
+    if rehearsal:
+        st.info("Rehearsal uses the saved cards from your live Game content. Edit them in the real event; the next rehearsal will pick up your changes. A rehearsal already in progress keeps its starting deck until reset.")
+        st.link_button("Edit saved game content in the real event", link("manage", mode=False))
+        for index, card in enumerate(state['cards'], 1):
+            with st.expander(f"{index}. {card['title']}"):
+                st.caption(card.get('section', ''))
+                st.write('Card type: ' + card['kind'])
+                for option in card.get('options', []):
+                    st.write(option['label'])
+                if card.get('lesson'):
+                    st.write(card['lesson'])
+                if card.get('explanation'):
+                    st.write(card['explanation'])
+        return
     st.caption("Create linked Guess the room or ranking rounds from Survey results after grouping written answers. Edit each card’s wording and place it in the game here.")
     if state["frozen"]:
         st.info("Game content is saved for the current game. Use Run game → Reset game / unlock editing to make changes; survey responses will be preserved.")
@@ -483,8 +516,17 @@ def host_live():
             st.subheader("Ready to start your game")
             st.write("Start the game to show the first card on players’ screens. You’ll open voting when everyone is ready.")
             if st.button("Start game", type="primary", width="stretch", disabled=bool(readiness['error']), key="host_start_game"):
-                host_commit(engine.start_game, "Game started. Open voting when everyone is ready.")
-            st.caption("Starting closes the survey and saves its results for this game." if not state['frozen'] else "Survey results are already saved for this game. You’re ready to start.")
+                host_commit(start_saved_game, "Game started from your saved cards. Open voting when everyone is ready.")
+            st.caption("Starting loads the latest saved game cards and closes the survey for this session.")
+            if rehearsal:
+                st.caption("REHEARSAL · Saved live cards · Synthetic survey results · Separate players and scores")
+            if readiness['cards']:
+                st.write("First card: " + readiness['cards'][0]['title'])
+                with st.expander("Cards that will play · saved order"):
+                    for index, card in enumerate(readiness['cards'], 1):
+                        st.write(f"{index}. {card['title']}")
+                        if card.get('low_response_poll'):
+                            st.caption("Unscored fallback wording: fewer than five survey responses.")
             if readiness['error']:
                 st.error("Before you can start: " + readiness['error'])
                 left, right = st.columns(2)
@@ -607,7 +649,7 @@ def show_manage():
 
 ui.brandbar("REHEARSAL · SAMPLE DATA" if rehearsal else "MARKETING LUNCH & LEARN")
 if rehearsal:
-    ui.html('<div class="rehearsal">REHEARSAL · Synthetic survey responses · Separate from the real event</div>')
+    ui.html('<div class="rehearsal">REHEARSAL · Saved live game cards · Synthetic survey responses · Separate players and scores</div>')
 if "notice" in st.session_state:
     st.success(st.session_state.pop("notice"))
 if view == "manage":

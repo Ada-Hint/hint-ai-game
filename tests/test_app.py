@@ -25,17 +25,19 @@ class AppTests(unittest.TestCase):
         self.env.stop()
         self.temp.cleanup()
 
-    def app(self, view, authorized=True):
+    def app(self, view, authorized=True, rehearsal=False):
         at = AppTest.from_file(str(APP), default_timeout=15)
         at.query_params["view"] = view
+        if rehearsal:
+            at.query_params['mode'] = 'rehearsal'
         if authorized:
-            at.query_params["event"] = "TEST"
+            at.query_params["event"] = "TEST-DEMO" if rehearsal else "TEST"
         at.run()
         self.assertFalse(at.exception, [x.message for x in at.exception])
         return at
 
-    def host(self):
-        at = self.app("manage")
+    def host(self, rehearsal=False):
+        at = self.app("manage", rehearsal=rehearsal)
         at.text_input[0].set_value("test-host-password-only")
         next(b for b in at.button if b.label == "Sign in").click().run()
         self.assertFalse(at.exception, [x.message for x in at.exception])
@@ -50,6 +52,33 @@ class AppTests(unittest.TestCase):
         admin.text_input[0].set_value("wrong")
         next(b for b in admin.button if b.label == "Sign in").click().run()
         self.assertTrue(admin.error)
+
+    def test_saved_cards_reach_host_player_and_board_in_both_modes(self):
+        host = self.host()
+        host.radio(key='host_tab').set_value('Game content').run()
+        next(t for t in host.text_area if t.label == 'Question or title').set_value('Saved opening for every screen')
+        host.button(key='save_card_practice').click().run()
+        for rehearsal in [False, True]:
+            host = self.host(rehearsal=rehearsal)
+            self.assertIn('First card: Saved opening for every screen', ' '.join(m.value for m in host.markdown))
+            host.button(key='host_start_game').click().run()
+            self.assertFalse(host.exception, [x.message for x in host.exception])
+            self.assertIn('Saved opening for every screen', [h.value for h in host.subheader])
+            board = self.app('present', rehearsal=rehearsal)
+            self.assertIn('Saved opening for every screen', ' '.join(m.value for m in board.markdown))
+            player = self.app('play', rehearsal=rehearsal)
+            next(t for t in player.text_input if t.label == 'Your game nickname').set_value('Content tester')
+            next(b for b in player.button if b.label == 'I’m in →').click().run()
+            self.assertFalse(player.exception, [x.message for x in player.exception])
+            self.assertIn('Saved opening for every screen', ' '.join(m.value for m in player.markdown))
+
+    def test_rehearsal_start_fetches_edits_saved_after_page_opened(self):
+        host = self.host(rehearsal=True)
+        self.repo.mutate(lambda s: s['cards'][0].update(title='Saved in another host tab'))
+        host.button(key='host_start_game').click().run()
+        self.assertFalse(host.exception, [x.message for x in host.exception])
+        self.assertIn('Saved in another host tab', [h.value for h in host.subheader])
+        self.assertFalse(self.repo.snapshot()['frozen'])
 
     def test_host_editor_can_save_publish_and_preserve_archive(self):
         at = self.host()
