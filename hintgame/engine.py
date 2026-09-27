@@ -94,6 +94,29 @@ def save_draft(state, questions):
     state["survey"]["draft"] = deepcopy(questions)
 
 
+def move_question(state, qid, offset):
+    """Move a draft question without changing its identity or published versions."""
+    questions = list(state["survey"]["draft"])
+    _move_item(questions, qid, offset)
+    save_draft(state, questions)
+
+
+def _move_item(items, item_id, offset):
+    index = next((i for i, item in enumerate(items) if item["id"] == item_id), None)
+    if index is None:
+        raise RuleError("This item was removed. Refresh the editor and try again.")
+    target = index + offset
+    if 0 <= target < len(items):
+        items[index], items[target] = items[target], items[index]
+
+
+def move_card(state, cid, offset):
+    """Move a game card using the latest saved order and normal editing rules."""
+    cards = list(state["cards"])
+    _move_item(cards, cid, offset)
+    save_cards(state, cards)
+
+
 def validate_import(data):
     if not isinstance(data, dict) or data.get("format") != "hint-survey-draft-v1" or not isinstance(data.get("questions"), list):
         raise RuleError("Import a question draft exported from this app.")

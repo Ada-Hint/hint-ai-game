@@ -96,3 +96,20 @@ button[kind="primary"],button[data-testid="stBaseButton-primary"],button[data-te
 .host-vote-stats strong{font-size:30px;color:#0037ff;font-variant-numeric:tabular-nums}
 .host-vote-stats small{font-size:14px;font-weight:400}.host-vote-stats span{font-size:16px}
 @media(max-width:640px){.st-key-host_controls{padding:14px!important}.host-status{align-items:flex-start}.host-room-meta{gap:8px 16px}}
+
+/* Keep every editor title and its reorder controls together, including on phones. */
+[class*="st-key-question_row_"],[class*="st-key-card_row_"]{margin-bottom:2px}
+[class*="st-key-question_row_"]>div>[data-testid="stHorizontalBlock"],
+[class*="st-key-card_row_"]>div>[data-testid="stHorizontalBlock"]{align-items:flex-start}
+[class*="st-key-question_up_"] button,[class*="st-key-question_down_"] button,
+[class*="st-key-card_up_"] button,[class*="st-key-card_down_"] button{padding:8px 10px;min-height:46px;border-radius:12px!important}
+[class*="st-key-question_details_"] summary,[class*="st-key-card_details_"] summary{min-height:46px}
+[class*="st-key-question_details_"] summary p,[class*="st-key-card_details_"] summary p{font-weight:600;overflow-wrap:anywhere;line-height:1.4}
+@media(max-width:640px){
+  [class*="st-key-question_row_"]>[data-testid="stLayoutWrapper"]>[data-testid="stHorizontalBlock"],
+  [class*="st-key-card_row_"]>[data-testid="stLayoutWrapper"]>[data-testid="stHorizontalBlock"]{flex-wrap:wrap!important}
+  [class*="st-key-question_row_"]>[data-testid="stLayoutWrapper"]>[data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:first-child,
+  [class*="st-key-card_row_"]>[data-testid="stLayoutWrapper"]>[data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:first-child{width:100%!important;flex:1 1 100%!important}
+  [class*="st-key-question_row_"]>[data-testid="stLayoutWrapper"]>[data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:not(:first-child),
+  [class*="st-key-card_row_"]>[data-testid="stLayoutWrapper"]>[data-testid="stHorizontalBlock"]>[data-testid="stColumn"]:not(:first-child){width:calc(50% - 8px)!important;flex:1 1 calc(50% - 8px)!important;min-width:0!important}
+}

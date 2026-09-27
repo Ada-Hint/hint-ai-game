@@ -68,6 +68,7 @@ Use **Edit survey → Download question draft** locally, then **Edit survey → 
 
 ### Editing and publishing
 
+- Both **Edit survey** and **Game content** show every question in a numbered list. Open any question to edit it; several can stay open at once. Use **Up** and **Down** beside a question to save its new position immediately. Save wording and answer changes with the button inside that question.
 - Draft questions can be added, removed, duplicated, reordered, and edited. Choice and text questions have **Allow multiple responses**; ratings are single answers. **Ranking (drag to order)** lets respondents rank every listed answer, then confirm their order. New answer rows receive unique IDs automatically.
 - Mark an answer as **Exclusive** when it must be chosen alone; mark **Other** to show repeatable write-in fields.
 - Save edits, preview as a respondent, then publish. Publishing changed content creates a new version with a fresh active response set; older responses are retained under **Survey results → Survey version**. It does not reinterpret old answers or silently combine incompatible versions.

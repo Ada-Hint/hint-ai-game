@@ -66,7 +66,7 @@ def snapshot():
         st.stop()
 
 
-def commit(action, message=None):
+def commit(action, message=None, *, rerun=True):
     try:
         result = repo.mutate(action)
     except (engine.RuleError, StorageError) as exc:
@@ -74,7 +74,8 @@ def commit(action, message=None):
         return None
     if message:
         st.session_state["notice"] = message
-    st.rerun()
+    if rerun:
+        st.rerun()
     return result
 
 
@@ -82,11 +83,11 @@ def is_host():
     return st.session_state.get("host_auth") == engine.digest(settings.host_password)
 
 
-def host_commit(action, message=None):
+def host_commit(action, message=None, *, rerun=True):
     if not is_host():
         st.error("Sign in as the host first.")
         st.stop()
-    return commit(action, message)
+    return commit(action, message, rerun=rerun)
 
 
 def require_event():
@@ -360,18 +361,8 @@ def survey_results(state):
     st.download_button("Download anonymous survey results", json.dumps(export, indent=2), file_name=f'hint-survey-v{version["number"]}.json', mime="application/json")
 
 
-def content_editor(state):
-    st.subheader("Your questions. Your teaching moments.")
-    st.caption("Create linked Guess the room or ranking rounds from Survey results after grouping written answers. Edit each card’s wording and place it in the game here.")
-    if state["frozen"]:
-        st.info("Game content is saved for the current game. Use Run game → Reset game / unlock editing to make changes; survey responses will be preserved.")
-        return
-    cards = state["cards"]
-    labels = {c["id"]: f'{i + 1}. {c["title"]}' for i, c in enumerate(cards)}
-    if "pending_edit_card" in st.session_state:
-        st.session_state["edit_card_id"] = st.session_state.pop("pending_edit_card")
-    cid = st.selectbox("Game card", list(labels), format_func=labels.get, key="edit_card_id")
-    c = next(c for c in cards if c["id"] == cid)
+def edit_card_fields(state, c):
+    cid = c["id"]
     kinds = {"quiz": "Quiz", "poll": "Live poll", "survey": "Guess the room", "ranking": "Ranking (drag to order)"}
     kind = st.selectbox("Game response type", list(kinds), format_func=kinds.get, index=list(kinds).index(c["kind"]), key="card_kind_" + cid) if c["kind"] in kinds else c["kind"]
     source = c.get("ranking_source", "manual")
@@ -406,7 +397,7 @@ def content_editor(state):
             if survey_qs:
                 qlabels = {q["id"]: q["title"] for q in survey_qs}
                 ids = list(qlabels)
-                survey_qid = st.selectbox("Survey question feeding this board", ids, format_func=qlabels.get, index=ids.index(survey_qid) if survey_qid in ids else 0)
+                survey_qid = st.selectbox("Survey question feeding this board", ids, key=f"card_survey_source_{cid}", format_func=qlabels.get, index=ids.index(survey_qid) if survey_qid in ids else 0)
             else:
                 survey_qid = None
                 st.info("Add and publish a choice, text, or ranking survey question first.")
@@ -415,7 +406,7 @@ def content_editor(state):
                 st.caption("Choice and grouped-text results rank by response count; ranking results use average position. Tied answers accept either order within their tied positions. Ties at the cutoff are included. At least five survey responses are required.")
             else:
                 poll_title = st.text_input("Live-poll wording if fewer than five people answer", value=poll_title)
-        if st.form_submit_button("Save game card", type="primary"):
+        if st.form_submit_button("Save game card", type="primary", key=f"save_card_{cid}"):
             try:
                 if editable:
                     options = engine.clean_options(rows, c.get("options", []))
@@ -432,20 +423,27 @@ def content_editor(state):
                 host_commit(lambda s: engine.save_cards(s, [updated if card["id"] == cid else card for card in s["cards"]]), "Game card saved.")
             except engine.RuleError as exc:
                 st.error(str(exc))
-    cols = st.columns(3)
-    def move_card(s, offset):
-        updated = list(s["cards"])
-        index = next(i for i, card in enumerate(updated) if card["id"] == cid)
-        target = index + offset
-        if 0 <= target < len(updated):
-            updated[index], updated[target] = updated[target], updated[index]
-            engine.save_cards(s, updated)
-    if cols[0].button("↑ Move card up", disabled=cards[0]["id"] == cid):
-        host_commit(lambda s: move_card(s, -1))
-    if cols[1].button("↓ Move card down", disabled=cards[-1]["id"] == cid):
-        host_commit(lambda s: move_card(s, 1))
-    if cols[2].button("Remove game card", disabled=len(cards) == 1):
+    if st.button("Remove game card", key=f"remove_card_{cid}", disabled=len(state["cards"]) == 1):
         host_commit(lambda s: engine.save_cards(s, [card for card in s["cards"] if card["id"] != cid]))
+
+
+def content_editor(state):
+    st.subheader("Your questions. Your teaching moments.")
+    st.caption("Create linked Guess the room or ranking rounds from Survey results after grouping written answers. Edit each card’s wording and place it in the game here.")
+    if state["frozen"]:
+        st.info("Game content is saved for the current game. Use Run game → Reset game / unlock editing to make changes; survey responses will be preserved.")
+        return
+    cards = state["cards"]
+    pending = st.session_state.pop("pending_edit_card", None)
+    st.caption(f"{len(cards)} cards · Open any card to edit. Use Up and Down to change the order.")
+    for index, c in enumerate(cards):
+        cid = c["id"]
+        with st.container(key=f"card_row_{cid}"):
+            detail, up, down = st.columns([6, 1, 1], gap="small")
+            up.button("Up", icon=":material/arrow_upward:", key=f"card_up_{cid}", help=f"Move card {index + 1} up", disabled=index == 0, width="stretch", on_click=host_commit, args=(lambda s, item_id=cid: engine.move_card(s, item_id, -1), "Game card moved up."), kwargs={"rerun": False})
+            down.button("Down", icon=":material/arrow_downward:", key=f"card_down_{cid}", help=f"Move card {index + 1} down", disabled=index == len(cards) - 1, width="stretch", on_click=host_commit, args=(lambda s, item_id=cid: engine.move_card(s, item_id, 1), "Game card moved down."), kwargs={"rerun": False})
+            with detail.expander(f"{index + 1}. {c['title']}", key=f"card_details_{cid}", expanded=cid == pending):
+                edit_card_fields(state, c)
     if st.button("＋ Add a ranking round"):
         new_card = {"id": engine.new_id(), "kind": "ranking", "title": "Rank the most annoying marketing tasks", "section": "RANK THE ROOM", "ranking_source": "manual", "options": [{"id": "A", "label": "Reporting"}, {"id": "B", "label": "Meeting notes"}, {"id": "C", "label": "Content revisions"}], "correct": ["A", "B", "C"], "scored": True}
         def add(s):

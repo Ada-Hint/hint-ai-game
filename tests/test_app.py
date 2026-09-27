@@ -130,6 +130,31 @@ class AppTests(unittest.TestCase):
             at.radio(key="host_tab").set_value(tab).run()
             self.assertFalse(at.exception, [x.message for x in at.exception])
 
+    def test_all_questions_visible_and_reorder_preserves_content(self):
+        at = self.host()
+        for tab, collection, prefix in [
+            ('Edit survey', lambda s: s['survey']['draft'], 'question'),
+            ('Game content', lambda s: s['cards'], 'card'),
+        ]:
+            at.radio(key='host_tab').set_value(tab).run()
+            before = self.repo.snapshot()
+            items = collection(before)
+            self.assertTrue(all(any(e.label == f"{i + 1}. {item['title']}" for e in at.expander) for i, item in enumerate(items)))
+            self.assertTrue(at.button(key=f"{prefix}_up_{items[0]['id']}").disabled)
+            self.assertTrue(at.button(key=f"{prefix}_down_{items[-1]['id']}").disabled)
+            moved = items[1]['id']
+            at.button(key=f'{prefix}_up_{moved}').click().run()
+            self.assertFalse(at.exception, [x.message for x in at.exception])
+            after = self.repo.snapshot()
+            self.assertEqual(collection(after), [items[1], items[0], *items[2:]])
+            self.assertEqual(after['survey']['versions'], before['survey']['versions'])
+            self.assertEqual(after['survey']['responses'], before['survey']['responses'])
+            at.button(key=f'{prefix}_down_{moved}').click().run()
+            self.assertEqual(collection(self.repo.snapshot()), items)
+            at = self.host()
+            at.radio(key='host_tab').set_value(tab).run()
+            self.assertTrue(any(e.label == f"2. {items[1]['title']}" for e in at.expander))
+
     def test_host_start_blocker_and_navigation(self):
         self.repo.mutate(lambda s: s['survey'].update(active_version=None))
         at = self.host()
@@ -201,18 +226,17 @@ class AppTests(unittest.TestCase):
     def test_added_editor_rows_get_stable_unique_ids(self):
         at = self.host()
         at.radio(key='host_tab').set_value('Edit survey').run()
-        at.selectbox(key='edit_qid').set_value('tools').run()
         q = next(q for q in self.repo.snapshot()['survey']['draft'] if q['id'] == 'tools')
         key = f'question_options_tools_choice_{engine.digest(str(q))[:10]}'
         at.session_state[key] = {'edited_rows': {}, 'deleted_rows': [], 'added_rows': [{'label': name} for name in ['Claude', 'Grok', 'Meta AI']]}
-        next(b for b in at.button if b.label == 'Save question').click().run()
+        at.button(key='save_question_tools').click().run()
         self.assertFalse(at.exception)
         self.assertFalse(at.error)
         saved = next(q for q in self.repo.snapshot()['survey']['draft'] if q['id'] == 'tools')
         self.assertEqual(len(saved['options']), 8)
         self.assertEqual(len({o['id'] for o in saved['options']}), 8)
         self.assertEqual(saved['options'][:5], q['options'])
-        next(b for b in at.button if b.label == 'Save question').click().run()
+        at.button(key='save_question_tools').click().run()
         self.assertEqual(next(q for q in self.repo.snapshot()['survey']['draft'] if q['id'] == 'tools'), saved)
 
     def test_ranking_survey_and_game_editors_and_views(self):
@@ -232,8 +256,8 @@ class AppTests(unittest.TestCase):
         at.radio(key='host_tab').set_value('Game content').run()
         next(b for b in at.button if b.label == '＋ Add a ranking round').click().run()
         c = next(c for c in self.repo.snapshot()['cards'] if c['kind'] == 'ranking')
-        self.assertEqual(at.selectbox(key='edit_card_id').value, c['id'])
-        next(b for b in at.button if b.label == 'Save game card').click().run()
+        self.assertTrue(any(e.label.endswith(c['title']) for e in at.expander))
+        at.button(key=f"save_card_{c['id']}").click().run()
         self.assertFalse(at.exception, [x.message for x in at.exception])
         self.assertFalse(at.error)
         self.repo.mutate(engine.freeze)
@@ -258,18 +282,17 @@ class AppTests(unittest.TestCase):
     def test_new_game_answer_can_be_correct_and_keeps_id_on_resave(self):
         at = self.host()
         at.radio(key='host_tab').set_value('Game content').run()
-        at.selectbox(key='edit_card_id').set_value('brief').run()
         c = next(c for c in self.repo.snapshot()['cards'] if c['id'] == 'brief')
         key = f'card_options_brief_quiz_{engine.digest(str(c))[:10]}'
         at.session_state[key] = {'edited_rows': {2: {'correct': False}}, 'deleted_rows': [], 'added_rows': [{'label': 'A new correct answer', 'correct': True}, {'label': 'Another response'}]}
-        next(b for b in at.button if b.label == 'Save game card').click().run()
+        at.button(key='save_card_brief').click().run()
         self.assertFalse(at.exception)
         self.assertFalse(at.error)
         saved = next(c for c in self.repo.snapshot()['cards'] if c['id'] == 'brief')
         self.assertEqual(len(saved['options']), 5)
         self.assertEqual(len({o['id'] for o in saved['options']}), 5)
         self.assertEqual(saved['correct'], [saved['options'][3]['id']])
-        next(b for b in at.button if b.label == 'Save game card').click().run()
+        at.button(key='save_card_brief').click().run()
         self.assertEqual(next(c for c in self.repo.snapshot()['cards'] if c['id'] == 'brief'), saved)
 
     def test_workshop_checkboxes_scale_other_and_submission(self):
@@ -322,9 +345,8 @@ class AppTests(unittest.TestCase):
         self.assertEqual(c['kind'], 'survey')
         self.assertFalse(at.exception)
         at.radio(key='host_tab').set_value('Game content').run()
-        at.selectbox(key='edit_card_id').set_value(c['id']).run()
         self.assertFalse(at.exception)
-        source = next(v for v in at.selectbox if v.label == 'Survey question feeding this board')
+        source = at.selectbox(key=f"card_survey_source_{c['id']}")
         self.assertEqual(source.value, 'ideas')
 
 
